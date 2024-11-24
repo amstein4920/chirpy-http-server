@@ -19,10 +19,12 @@ import (
 type apiConfig struct {
 	fileserverHits  atomic.Int32
 	databaseQueries *database.Queries
+	platform        string
 }
 
 func main() {
 	godotenv.Load()
+	platform := os.Getenv("PLATFORM")
 	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -32,6 +34,7 @@ func main() {
 	dbQueries := database.New(db)
 	config := apiConfig{
 		databaseQueries: dbQueries,
+		platform:        platform,
 	}
 
 	serveMux := http.NewServeMux()
@@ -45,75 +48,14 @@ func main() {
 			http.StripPrefix("/app",
 				http.FileServer(http.Dir(".")))))
 
-	serveMux.HandleFunc("GET /api/healthz", config.healthHandler)
 	serveMux.HandleFunc("GET /admin/metrics", config.metricsHandler)
-
 	serveMux.HandleFunc("POST /admin/reset", config.resetHandler)
+
+	serveMux.HandleFunc("GET /api/healthz", config.healthHandler)
 	serveMux.HandleFunc("POST /api/validate_chirp", config.validateHandler)
+	serveMux.HandleFunc("POST /api/users", config.usersHandler)
 
 	server.ListenAndServe()
-}
-
-func (config *apiConfig) healthHandler(writer http.ResponseWriter, request *http.Request) {
-	writer.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	writer.WriteHeader(200)
-	writer.Write([]byte("OK"))
-}
-
-func (config *apiConfig) metricsIncrement(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		config.fileserverHits.Add(1)
-		next.ServeHTTP(writer, request)
-	})
-}
-
-func (config *apiConfig) metricsHandler(writer http.ResponseWriter, _ *http.Request) {
-	writer.Header().Add("Content-Type", "text/html")
-	writer.WriteHeader(200)
-	writer.Write([]byte(fmt.Sprintf(`
-	<html>
-		<body>
-			<h1>Welcome, Chirpy Admin</h1>
-			<p>Chirpy has been visited %d times!</p>
-		</body>
-	</html>`,
-		config.fileserverHits.Load())))
-}
-
-func (config *apiConfig) resetHandler(writer http.ResponseWriter, _ *http.Request) {
-	writer.WriteHeader(200)
-	config.fileserverHits.Store(0)
-}
-
-func (config *apiConfig) validateHandler(writer http.ResponseWriter, request *http.Request) {
-	type parameters struct {
-		Body string `json:"body"`
-	}
-
-	decoder := json.NewDecoder(request.Body)
-	params := parameters{}
-
-	err := decoder.Decode(&params)
-	if err != nil {
-		fmt.Printf("Invalid JSON: %s", err)
-		writer.WriteHeader(500)
-		return
-	}
-
-	if len(params.Body) > 140 {
-		respondWithError(writer, 400, "Chirp is too long")
-		return
-	}
-	type returnParameters struct {
-		CleanedBody string `json:"cleaned_body"`
-	}
-
-	censoredMessage := censorMessage(params.Body)
-
-	validParams := returnParameters{
-		CleanedBody: censoredMessage,
-	}
-	respondWithJSON(writer, 200, validParams)
 }
 
 func censorMessage(message string) string {
