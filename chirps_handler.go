@@ -60,3 +60,50 @@ func (config *apiConfig) chirpsHandler(writer http.ResponseWriter, request *http
 
 	respondWithJSON(writer, 201, returnChirp)
 }
+
+func (config *apiConfig) allChirpsHandler(writer http.ResponseWriter, request *http.Request) {
+	dbChirps, err := config.databaseQueries.AllChirps(request.Context())
+	if err != nil {
+		fmt.Printf("Chirps not retrieved: %s", err)
+		writer.WriteHeader(500)
+		return
+	}
+
+	returnChirps := []Chirp{}
+
+	for _, dbChirp := range dbChirps {
+		returnChirps = append(returnChirps, Chirp{
+			ID:        dbChirp.ID,
+			CreatedAt: dbChirp.CreatedAt,
+			UpdatedAt: dbChirp.UpdatedAt,
+			Body:      dbChirp.Body,
+			UserID:    dbChirp.UserID,
+		})
+	}
+
+	respondWithJSON(writer, 200, returnChirps)
+}
+
+func (config *apiConfig) singleChirpsHandler(writer http.ResponseWriter, request *http.Request) {
+	id, err := uuid.Parse(request.PathValue("id"))
+	if err != nil {
+		fmt.Printf("Invalid ID: %s", err)
+		writer.WriteHeader(500)
+		return
+	}
+	dbChirp, err := config.databaseQueries.SingleChirp(request.Context(), id)
+	if err != nil {
+		writer.WriteHeader(404)
+		return
+	}
+
+	returnChirp := Chirp{
+		ID:        dbChirp.ID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
+	}
+
+	respondWithJSON(writer, 200, returnChirp)
+}

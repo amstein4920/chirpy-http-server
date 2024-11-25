@@ -52,7 +52,11 @@ func main() {
 	serveMux.HandleFunc("POST /admin/reset", config.resetHandler)
 
 	serveMux.HandleFunc("GET /api/healthz", config.healthHandler)
+	serveMux.HandleFunc("GET /api/chirps", config.allChirpsHandler)
+	serveMux.HandleFunc("GET /api/chirps/{id}", config.singleChirpsHandler)
+
 	serveMux.HandleFunc("POST /api/users", config.usersHandler)
+	serveMux.HandleFunc("POST /api/login", config.loginHandler)
 	serveMux.HandleFunc("POST /api/chirps", config.chirpsHandler)
 
 	server.ListenAndServe()
