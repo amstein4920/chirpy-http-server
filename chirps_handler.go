@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/amstein4920/chirpy-http-server/internal/auth"
 	"github.com/amstein4920/chirpy-http-server/internal/database"
 	"github.com/google/uuid"
 )
@@ -20,13 +21,23 @@ type Chirp struct {
 
 func (config *apiConfig) chirpsHandler(writer http.ResponseWriter, request *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
+
+	token, err := auth.GetBearerToken(request.Header)
+	if err != nil {
+		respondWithError(writer, 401, err.Error())
+	}
+
+	userId, err := auth.ValidateJWT(token, config.secret)
+	if err != nil {
+		respondWithError(writer, 401, "Unauthorized")
+	}
+
 	decoder := json.NewDecoder(request.Body)
 	params := parameters{}
 
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		fmt.Printf("Invalid JSON: %s", err)
 		writer.WriteHeader(500)
@@ -42,7 +53,7 @@ func (config *apiConfig) chirpsHandler(writer http.ResponseWriter, request *http
 
 	dbChirp, err := config.databaseQueries.CreateChirp(request.Context(), database.CreateChirpParams{
 		Body:   params.Body,
-		UserID: params.UserID,
+		UserID: userId,
 	})
 	if err != nil {
 		fmt.Printf("Chirp not created: %s", err)

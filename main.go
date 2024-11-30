@@ -20,22 +20,11 @@ type apiConfig struct {
 	fileserverHits  atomic.Int32
 	databaseQueries *database.Queries
 	platform        string
+	secret          string
 }
 
 func main() {
-	godotenv.Load()
-	platform := os.Getenv("PLATFORM")
-	dbURL := os.Getenv("DB_URL")
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		fmt.Println("Failed to connect to DB")
-		os.Exit(1)
-	}
-	dbQueries := database.New(db)
-	config := apiConfig{
-		databaseQueries: dbQueries,
-		platform:        platform,
-	}
+	config := setupEnv()
 
 	serveMux := http.NewServeMux()
 	server := http.Server{
@@ -55,8 +44,11 @@ func main() {
 	serveMux.HandleFunc("GET /api/chirps", config.allChirpsHandler)
 	serveMux.HandleFunc("GET /api/chirps/{id}", config.singleChirpsHandler)
 
-	serveMux.HandleFunc("POST /api/users", config.usersHandler)
 	serveMux.HandleFunc("POST /api/login", config.loginHandler)
+	serveMux.HandleFunc("POST /api/refresh", config.refreshHandler)
+	serveMux.HandleFunc("POST /api/revoke", config.revokeHandler)
+
+	serveMux.HandleFunc("POST /api/users", config.usersHandler)
 	serveMux.HandleFunc("POST /api/chirps", config.chirpsHandler)
 
 	server.ListenAndServe()
@@ -104,4 +96,22 @@ func respondWithJSON(writer http.ResponseWriter, code int, payload interface{}) 
 	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(code)
 	writer.Write(validResponse)
+}
+
+func setupEnv() apiConfig {
+	godotenv.Load()
+	secret := os.Getenv("SECRET")
+	platform := os.Getenv("PLATFORM")
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		fmt.Println("Failed to connect to DB")
+		os.Exit(1)
+	}
+	dbQueries := database.New(db)
+	return apiConfig{
+		databaseQueries: dbQueries,
+		platform:        platform,
+		secret:          secret,
+	}
 }
