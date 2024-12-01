@@ -27,11 +27,13 @@ func (config *apiConfig) chirpsHandler(writer http.ResponseWriter, request *http
 	token, err := auth.GetBearerToken(request.Header)
 	if err != nil {
 		respondWithError(writer, 401, err.Error())
+		return
 	}
 
 	userId, err := auth.ValidateJWT(token, config.secret)
 	if err != nil {
 		respondWithError(writer, 401, "Unauthorized")
+		return
 	}
 
 	decoder := json.NewDecoder(request.Body)
@@ -56,8 +58,7 @@ func (config *apiConfig) chirpsHandler(writer http.ResponseWriter, request *http
 		UserID: userId,
 	})
 	if err != nil {
-		fmt.Printf("Chirp not created: %s", err)
-		writer.WriteHeader(500)
+		respondWithError(writer, 500, fmt.Sprintf("Chirp not created: %s", err.Error()))
 		return
 	}
 

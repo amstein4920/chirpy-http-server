@@ -80,8 +80,8 @@ func respondWithError(writer http.ResponseWriter, code int, message string) {
 		writer.WriteHeader(500)
 		return
 	}
-	writer.Header().Add("Content-Type", "application/json")
 	writer.WriteHeader(code)
+	writer.Header().Add("Content-Type", "application/json")
 	writer.Write(errorResponse)
 }
 
