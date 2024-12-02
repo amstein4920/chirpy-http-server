@@ -119,3 +119,40 @@ func (config *apiConfig) singleChirpsHandler(writer http.ResponseWriter, request
 
 	respondWithJSON(writer, 200, returnChirp)
 }
+
+func (config *apiConfig) deleteChirpHandler(writer http.ResponseWriter, request *http.Request) {
+	accessToken, err := auth.GetBearerToken(request.Header)
+	if err != nil {
+		respondWithError(writer, http.StatusUnauthorized, "No Access")
+		return
+	}
+	userId, err := auth.ValidateJWT(accessToken, config.secret)
+	if err != nil {
+		respondWithError(writer, http.StatusUnauthorized, "No Access")
+		return
+	}
+
+	id, err := uuid.Parse(request.PathValue("chirpID"))
+	if err != nil {
+		respondWithError(writer, http.StatusInternalServerError, "Invalid ID")
+		return
+	}
+	chirp, err := config.databaseQueries.SingleChirp(request.Context(), id)
+	if err != nil {
+		respondWithError(writer, http.StatusNotFound, "No Chirp found")
+		return
+	}
+
+	if chirp.UserID != userId {
+		respondWithError(writer, http.StatusForbidden, "Unauthorized")
+		return
+	}
+
+	err = config.databaseQueries.DelChirp(request.Context(), chirp.ID)
+	if err != nil {
+		respondWithError(writer, http.StatusNotFound, "No Chirp found")
+		return
+	}
+
+	writer.WriteHeader(http.StatusNoContent)
+}

@@ -53,6 +53,8 @@ func main() {
 
 	serveMux.HandleFunc("PUT /api/users", config.usersUpdateHandler)
 
+	serveMux.HandleFunc("DELETE /api/chirps/{chirpID}", config.deleteChirpHandler)
+
 	server.ListenAndServe()
 }
 
