@@ -51,6 +51,8 @@ func main() {
 	serveMux.HandleFunc("POST /api/users", config.usersHandler)
 	serveMux.HandleFunc("POST /api/chirps", config.chirpsHandler)
 
+	serveMux.HandleFunc("PUT /api/users", config.usersUpdateHandler)
+
 	server.ListenAndServe()
 }
 

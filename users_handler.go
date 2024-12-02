@@ -55,8 +55,7 @@ func (config *apiConfig) usersHandler(writer http.ResponseWriter, request *http.
 
 	dbUser, err := config.databaseQueries.CreateUser(request.Context(), dbParams)
 	if err != nil {
-		fmt.Printf("User Not Created: %s", err)
-		writer.WriteHeader(500)
+		respondWithError(writer, 500, fmt.Sprintf("User Not Created: %s", err))
 		return
 	}
 
@@ -67,6 +66,58 @@ func (config *apiConfig) usersHandler(writer http.ResponseWriter, request *http.
 		Email:     dbUser.Email,
 	}
 	respondWithJSON(writer, 201, user)
+}
+
+func (config *apiConfig) usersUpdateHandler(writer http.ResponseWriter, request *http.Request) {
+	accessToken, err := auth.GetBearerToken(request.Header)
+	if err != nil {
+		respondWithError(writer, 401, "No Access")
+		return
+	}
+	userId, err := auth.ValidateJWT(accessToken, config.secret)
+	if err != nil {
+		respondWithError(writer, 401, "No Access")
+		return
+	}
+
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+	params := parameters{}
+
+	decoder := json.NewDecoder(request.Body)
+	err = decoder.Decode(&params)
+	if err != nil {
+		respondWithError(writer, 500, "Invalid JSON")
+	}
+
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(writer, 500, "Password Failure")
+	}
+
+	dbParams := database.UpdatePassEmailParams{
+		ID: userId,
+		HashedPassword: sql.NullString{
+			String: hashedPassword,
+			Valid:  true,
+		},
+		Email: params.Email,
+	}
+
+	dbUser, err := config.databaseQueries.UpdatePassEmail(request.Context(), dbParams)
+	if err != nil {
+		respondWithError(writer, 500, "Error updating user")
+	}
+
+	user := User{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+	}
+	respondWithJSON(writer, 200, user)
 }
 
 func decodeEmailPassword(request *http.Request) (EmailPassword, error) {
