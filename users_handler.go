@@ -30,6 +30,7 @@ type Response struct {
 	Token        string `json:"token"`
 	RefreshToken string `json:"refresh_token"`
 	IsChirpyRed  bool   `json:"is_chirpy_red"`
+	Email        string `json:"email"`
 }
 
 func (config *apiConfig) usersHandler(writer http.ResponseWriter, request *http.Request) {

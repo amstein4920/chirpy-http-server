@@ -56,6 +56,7 @@ func (config *apiConfig) loginHandler(writer http.ResponseWriter, request *http.
 		Token:        accessToken,
 		RefreshToken: refreshToken,
 		IsChirpyRed:  dbUser.IsChirpyRed.Bool,
+		Email:        dbUser.Email,
 	})
 
 	config.databaseQueries.CreateRefresh(request.Context(), database.CreateRefreshParams{
