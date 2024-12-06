@@ -74,11 +74,29 @@ func (config *apiConfig) chirpsHandler(writer http.ResponseWriter, request *http
 }
 
 func (config *apiConfig) allChirpsHandler(writer http.ResponseWriter, request *http.Request) {
-	dbChirps, err := config.databaseQueries.AllChirps(request.Context())
-	if err != nil {
-		fmt.Printf("Chirps not retrieved: %s", err)
-		writer.WriteHeader(500)
-		return
+	authorID := request.URL.Query().Get("author_id")
+
+	var dbChirps []database.Chirp
+	var err error
+
+	if authorID != "" {
+		authorUUID, err := uuid.Parse(authorID)
+		if err != nil {
+			respondWithError(writer, 500, "Invalid ID")
+			return
+		}
+
+		dbChirps, err = config.databaseQueries.AllChirpsAuthorID(request.Context(), authorUUID)
+		if err != nil {
+			respondWithError(writer, 500, fmt.Sprintf("Chirps not retrieved: %s", err))
+			return
+		}
+	} else {
+		dbChirps, err = config.databaseQueries.AllChirps(request.Context())
+		if err != nil {
+			respondWithError(writer, 500, fmt.Sprintf("Chirps not retrieved: %s", err))
+			return
+		}
 	}
 
 	returnChirps := []Chirp{}
