@@ -21,6 +21,7 @@ type apiConfig struct {
 	databaseQueries *database.Queries
 	platform        string
 	secret          string
+	polkaKey        string
 }
 
 func main() {
@@ -43,6 +44,8 @@ func main() {
 	serveMux.HandleFunc("GET /api/healthz", config.healthHandler)
 	serveMux.HandleFunc("GET /api/chirps", config.allChirpsHandler)
 	serveMux.HandleFunc("GET /api/chirps/{id}", config.singleChirpsHandler)
+
+	serveMux.HandleFunc("POST /api/polka/webhooks", config.webhooksHandler)
 
 	serveMux.HandleFunc("POST /api/login", config.loginHandler)
 	serveMux.HandleFunc("POST /api/refresh", config.refreshHandler)
@@ -105,6 +108,7 @@ func respondWithJSON(writer http.ResponseWriter, code int, payload interface{}) 
 func setupEnv() apiConfig {
 	godotenv.Load()
 	secret := os.Getenv("SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 	platform := os.Getenv("PLATFORM")
 	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
@@ -117,5 +121,6 @@ func setupEnv() apiConfig {
 		databaseQueries: dbQueries,
 		platform:        platform,
 		secret:          secret,
+		polkaKey:        polkaKey,
 	}
 }

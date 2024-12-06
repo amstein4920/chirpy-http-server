@@ -44,16 +44,18 @@ func (config *apiConfig) loginHandler(writer http.ResponseWriter, request *http.
 	}
 
 	user := User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
+		ID:          dbUser.ID,
+		CreatedAt:   dbUser.CreatedAt,
+		UpdatedAt:   dbUser.UpdatedAt,
+		Email:       dbUser.Email,
+		IsChirpyRed: dbUser.IsChirpyRed.Bool,
 	}
 
 	respondWithJSON(writer, 200, Response{
 		User:         user,
 		Token:        accessToken,
 		RefreshToken: refreshToken,
+		IsChirpyRed:  dbUser.IsChirpyRed.Bool,
 	})
 
 	config.databaseQueries.CreateRefresh(request.Context(), database.CreateRefreshParams{

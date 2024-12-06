@@ -14,7 +14,7 @@ import (
 
 const updatePassEmail = `-- name: UpdatePassEmail :one
 update users set email = $3, hashed_password = $2 where id = $1
-returning id, created_at, updated_at, email, hashed_password
+returning id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type UpdatePassEmailParams struct {
@@ -32,6 +32,7 @@ func (q *Queries) UpdatePassEmail(ctx context.Context, arg UpdatePassEmailParams
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
