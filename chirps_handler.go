@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/amstein4920/chirpy-http-server/internal/auth"
@@ -75,6 +76,10 @@ func (config *apiConfig) chirpsHandler(writer http.ResponseWriter, request *http
 
 func (config *apiConfig) allChirpsHandler(writer http.ResponseWriter, request *http.Request) {
 	authorID := request.URL.Query().Get("author_id")
+	sortDirection := request.URL.Query().Get("sort")
+	if sortDirection == "" {
+		sortDirection = "asc"
+	}
 
 	var dbChirps []database.Chirp
 	var err error
@@ -110,6 +115,12 @@ func (config *apiConfig) allChirpsHandler(writer http.ResponseWriter, request *h
 			UserID:    dbChirp.UserID,
 		})
 	}
+	sort.Slice(returnChirps, func(i, j int) bool {
+		if sortDirection == "asc" {
+			return returnChirps[i].CreatedAt.Before(returnChirps[j].CreatedAt)
+		}
+		return returnChirps[i].CreatedAt.After(returnChirps[j].CreatedAt)
+	})
 
 	respondWithJSON(writer, 200, returnChirps)
 }
